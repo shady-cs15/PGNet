@@ -1,5 +1,5 @@
 from model import PGNet
-from batcher import Batcher
+from mybatcher import Batcher
 import tensorflow as tf
 from preprocessing import Vocab
 from collections import *
@@ -18,7 +18,7 @@ pg.build_graph()
 
 # setup batcher
 vocab = Vocab(cfg.VOCAB_PATH, cfg.VOCAB_SIZE)
-batcher = Batcher(cfg.DATA_PATH, vocab, True)
+batcher = Batcher(vocab)
 
 saver = tf.train.Saver()
 
@@ -43,8 +43,8 @@ with tf.Session() as sess:
     while batch:
         encoder_outputs, reduced_state = sess.run([pg.encoder_outputs, pg.reduced_state],
                                         feed_dict={
-                                        pg.encoder_input : batch.enc_batch,
-                                        pg.encoder_input_length : batch.enc_lens,
+                                        pg.encoder_input : batch['encoder_input'],
+                                        pg.encoder_input_length : batch['encoder_input_length'],
                                     })
 
         decoder_input_state = [reduced_state for k in range(cfg.BEAM_SEARCH_K)]
@@ -52,7 +52,7 @@ with tf.Session() as sess:
         running_summary = [''] * cfg.BEAM_SEARCH_K
 
         input_token = [vocab.word2id(preprocessing.START_DECODING) for k in range(cfg.BEAM_SEARCH_K)]
-        init_cov = [np.zeros([cfg.BATCH_SIZE, batch.enc_batch.shape[1]]) for k in range(cfg.BEAM_SEARCH_K)]
+        init_cov = [np.zeros([cfg.BATCH_SIZE, batch['encoder_input'].shape[1]]) for k in range(cfg.BEAM_SEARCH_K)]
 
         for t in range(cfg.DECODER_MAX_STEPS):
                 extended_probs = []
@@ -66,10 +66,10 @@ with tf.Session() as sess:
                                 pg.reduced_state : decoder_input_state[k],
                                 pg.decoder_input : decoder_input,
                                 pg.encoder_outputs : encoder_outputs,
-                                pg.encoder_masks : batch.enc_padding_mask,
+                                pg.encoder_masks : batch['encoder_masks'],
                                 pg.coverage : init_cov[k],
-                                pg.num_encoder_oovs : batch.max_art_oovs,
-                                pg.encoder_oov_idx : batch.enc_batch_extend_vocab
+                                pg.num_encoder_oovs : batch['num_encoder_oovs'],
+                                pg.encoder_oov_idx : batch['encoder_oov_idx']
                         }
 
                         output_tensors = [
@@ -96,7 +96,7 @@ with tf.Session() as sess:
                 
                 # update tokens
                 ids = ids[k2]
-                words = preprocessing.outputids2words(ids, vocab, batch.art_oovs[0])
+                words = preprocessing.outputids2words(ids, vocab, batch['oovs'][0])
                 input_token = [vocab.word2id(words[k]) for k in range(cfg.BEAM_SEARCH_K)]
 
                 # update summaries

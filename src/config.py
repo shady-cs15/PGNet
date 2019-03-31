@@ -10,7 +10,7 @@ DECODER_MAX_STEPS = 100
 ENCODER_MAX_STEPS = 400
 
 # True if inference, False if train / val
-INFERENCE = True
+INFERENCE = False
 USE_COVERAGE = True
 BEAM_SEARCH_K = 4
 

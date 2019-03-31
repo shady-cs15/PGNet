@@ -1,5 +1,5 @@
 from model import PGNet
-from batcher import Batcher
+from mybatcher import Batcher
 import tensorflow as tf
 from preprocessing import Vocab
 from collections import *
@@ -20,7 +20,7 @@ print 'optimizer set up'
 
 # setup batcher
 vocab = Vocab(cfg.VOCAB_PATH, cfg.VOCAB_SIZE)
-batcher = Batcher(cfg.DATA_PATH, vocab, False)
+batcher = Batcher(vocab)
 
 # model dir to save ckpt
 if not os.path.exists('../models'):
@@ -31,20 +31,20 @@ with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for i in range(cfg.TRAIN_STEPS):
             batch = batcher.next()
-            init_cov = np.zeros([cfg.BATCH_SIZE, batch.enc_batch.shape[1]])
+            init_cov = np.zeros([cfg.BATCH_SIZE, batch['encoder_input'].shape[1]])
             
             _, loss = sess.run([train_op, pg.loss_final], feed_dict={
-                                        pg.encoder_input : batch.enc_batch,
-                                        pg.encoder_masks : batch.enc_padding_mask,
-                                        pg.encoder_input_length : batch.enc_lens,
-                                        pg.decoder_input : batch.dec_batch,
-                                        pg.decoder_masks : batch.dec_padding_mask,
-                                        pg.decoder_gt : batch.target_batch,
-                                        pg.num_encoder_oovs : batch.max_art_oovs,
-                                        pg.encoder_oov_idx : batch.enc_batch_extend_vocab,
+                                        pg.encoder_input : batch['encoder_input'],
+                                        pg.encoder_masks : batch['encoder_masks'],
+                                        pg.encoder_input_length : batch['encoder_input_length'],
+                                        pg.decoder_input : batch['decoder_input'],
+                                        pg.decoder_masks : batch['decoder_masks'],
+                                        pg.decoder_gt : batch['decoder_gt'],
+                                        pg.num_encoder_oovs : batch['num_encoder_oovs'],
+                                        pg.encoder_oov_idx : batch['encoder_oov_idx'],
                                         pg.coverage : init_cov
                                     })
-            if (i+1) % cfg.DISP_STEP == 0:
+            if i % cfg.DISP_STEP == 0:
                 print loss
 
         # save ckpt
