@@ -12,6 +12,7 @@ ENCODER_MAX_STEPS = 400
 # True if inference, False if train / val
 INFERENCE = False
 USE_COVERAGE = True
+USE_OOV_PENALTY = True
 BEAM_SEARCH_K = 4
 
 LEARNING_RATE = 0.15

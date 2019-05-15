@@ -234,9 +234,16 @@ class PGNet(object):
                 loss_s2s = -tf.log(p_gold)
                 if t == 0:
                     self.gp = p_gold
-                
+               
                 # compute total loss, mask and add
                 loss_total = loss_s2s
+                
+                # compute oov loss
+                if cfg.USE_OOV_PENALTY:
+                    y_oov = tf.cast(output >= cfg.VOCAB_SIZE, tf.float32)
+                    loss_oov = - y_oov * tf.log(1-p_gen) - (1-y_oov)*tf.log(p_gen)
+                    loss_total += loss_oov
+
                 if t > 0 and cfg.USE_COVERAGE: 
                     loss_total += loss_cov
                 mask = self.decoder_masks[:, t]
